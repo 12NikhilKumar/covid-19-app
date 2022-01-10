@@ -1,5 +1,7 @@
 import axios from 'axios';
 import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { getData,sortAsc,sortDesc } from '../redux/action';
 const Table = ({state,active,death,recoverd,vacinated})=>{
     const cardStyle = {
         width:'95%',
@@ -34,7 +36,10 @@ const Table = ({state,active,death,recoverd,vacinated})=>{
     )
 }
 const CovidData = ()=>{
-    const [data,setData] = React.useState(null);
+    const dispatch = useDispatch();
+    const data = useSelector((state)=>state.data);
+    const isLoading = useSelector((state)=>state.isLoading);
+    const isError = useSelector((state)=>state.isError);
     const [total,setTotal] = React.useState(null);
     const [qurey,setQurey] = React.useState(null);
     const [url,setUrl] = React.useState(`https://corona.lmao.ninja/v2/countries`);
@@ -46,20 +51,16 @@ const CovidData = ()=>{
             method: 'get',
             url: url
         }
+        dispatch(getData(config))
         const config1 = {
             method: 'get',
             url : 'https://covid19-stats-api.herokuapp.com/api/v1/cases?country=India'
         }
-        axios(config)
-        .then((res) =>{
-            setData(res.data)
-            console.log(res.data)
-        })
         axios(config1)
         .then((response) =>{
             setTotal(response.data)
         })
-    },[url])
+    },[url,dispatch])
     const BanerStyle = {
         width:'95%',
         height:'350px',
@@ -67,6 +68,14 @@ const CovidData = ()=>{
         color:'aqua',
         margin: 'auto',
         padding: '1.5rem'
+    }
+    const sortinAsc = ()=>{
+        const action = sortAsc();
+        dispatch(action);
+    }
+    const sortinDesc = ()=>{
+        const action = sortDesc();
+        dispatch(action);
     }
     return (
         <div>
@@ -78,13 +87,17 @@ const CovidData = ()=>{
                     <div style={{width:'220px',height:'30px',backgroundColor:'#A2EA97',color:'black',padding:"1.5rem",borderRadius:'7px'}}>Recoverd : {total?.recovered}</div>
                 </div>
                 <h2>Please Were a mask and always sanitize your hand</h2>
+                <button style={{width:'180px',height:'25px',backgroundColor:'transparent'}} onClick={()=>sortinAsc()}>Sort in asending</button>
+                <button style={{width:'180px',height:'25px',backgroundColor:'transparent'}} onClick={()=>sortinDesc()}>Sort in desending</button>
             </div>
             <div>
                 <h3>Country Wise Data</h3>
                 <input style={{padding:'1rem',width:'550px',margin:'1rem',textAlign:'center'}} type="text" placeholder="Search your country" value={qurey} onChange={(e)=>setQurey(e.target.value)} /><button onClick={Search}>Search</button>
-            {data?.length>1?(data.map((item) =>(
-                <Table key={item.countryInfo.id} state={item.country} active={item.cases} death={item.deaths} recoverd={item.recovered} vacinated={item.tests}/>
-            ))):(<Table key={data?.countryInfo.id} state={data?.country} active={data?.cases} death={data?.deaths} recoverd={data?.recovered} vacinated={data?.tests}/>)}
+                {isLoading?(<div>loading...</div>):isError?(<div>error</div>):data.length>1?(
+                    data.map((item)=>(
+                        <Table key={item.countryInfo.id} state={item.country} active={item.cases} death={item.deaths} recoverd={item.recovered} vacinated={item.tests}/>
+                    ))
+                ):data?(<Table state={data.country} active={data.cases} death={data.deaths} recoverd={data.recovered} vacinated={data.tests}/>):(<h1>some thing went wrong</h1>)}
             </div>
         </div>
     )
